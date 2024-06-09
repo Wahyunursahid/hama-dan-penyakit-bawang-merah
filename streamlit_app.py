@@ -23,30 +23,35 @@ penyakit_gejala = pd.merge(tabel3, tabel1, left_on='Nama Penyakit', right_on='ha
 penyakit_gejala['MB'] = penyakit_gejala['MB'].str.replace(',', '.').astype(float)
 penyakit_gejala['MD'] = penyakit_gejala['MD'].str.replace(',', '.').astype(float)
 
+# Ensure there are no NaN values in 'Nama Penyakit'
+penyakit_gejala['Nama Penyakit'] = penyakit_gejala['Nama Penyakit'].fillna('Unknown')
+
 # Define function to calculate Certainty Factor
 def calculate_cf(mb, md):
     return mb - md
 
 # Define diagnosis function
 def diagnose(selected_gejala):
+    # Initialize results dictionary with all possible diseases set to 0
     results = {penyakit: 0 for penyakit in tabel1['hama dan penyakit'].tolist()}
-    total_cf = 0
+    
     for index, row in penyakit_gejala.iterrows():
         if row['Nama Gejala'].strip() in selected_gejala.keys():
             mb = row['MB'] * selected_gejala[row['Nama Gejala'].strip()]
             md = row['MD'] * selected_gejala[row['Nama Gejala'].strip()]
             cf = calculate_cf(mb, md)
-            results[row['Nama Penyakit']] += cf
-            total_cf += cf
+            if row['Nama Penyakit'] in results:
+                results[row['Nama Penyakit']] += cf
+            else:
+                results['Unknown'] += cf  # Handle unknown diseases
     
-    if results:
-        sorted_results = sorted(results.items(), key=lambda x: x[1], reverse=True)
-        total_cf = sum(results.values()) if sum(results.values()) != 0 else 1  # To prevent division by zero
-        for result in sorted_results:
-            percentage = (result[1] / total_cf) * 100
-            st.write(f"Hama/Penyakit: {result[0]}, Persentase Kepastian: {percentage:.2f}%")
-    else:
-        st.write("Tidak ada hama atau penyakit yang cocok dengan gejala yang dipilih.")
+    # Normalize and display results
+    total_cf = sum(results.values()) if sum(results.values()) != 0 else 1  # To prevent division by zero
+    sorted_results = sorted(results.items(), key=lambda x: x[1], reverse=True)
+    
+    for result in sorted_results:
+        percentage = (result[1] / total_cf) * 100
+        st.write(f"Hama/Penyakit: {result[0]}, Persentase Kepastian: {percentage:.2f}%")
 
 # Streamlit UI
 st.markdown("# Diagnosa Hama dan Penyakit")
