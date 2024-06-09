@@ -55,10 +55,14 @@ st.write("Silakan pilih nilai kepastian untuk setiap gejala:")
 
 selected_gejala = {}
 certainty_levels = {
-    "Tidak Yakin": 0.0,
-    "Sedikit Yakin": 0.2,
-    "Cukup Yakin": 0.5,
-    "Yakin": 0.8,
+    "Pasti Tidak": 0.2,
+    "hampir Pasti Tidak": 0.3,
+    "Kemungkinan Besar Tidak": 0.4,
+    "Kemungkinan Tidak": 0.5,
+    "Tidak Tahu": 0.6,
+    "Mungkin": 0.7,
+    "Kemungkinan Besar": 0.8,
+    " Hampir Yakin": 0.9,
     "Sangat Yakin": 1.0
 }
 
