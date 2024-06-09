@@ -1,110 +1,66 @@
-import streamlit as st 
+import streamlit as st
 import pandas as pd
 
+# Load the Excel file
+file_path = 'UAS-PAKAR.xlsx'
+xls = pd.ExcelFile(file_path)
+
+# Load sheets
+tabel1 = pd.read_excel(xls, sheet_name='tabel1')
+tabel2 = pd.read_excel(xls, sheet_name='tabel2')
+tabel3 = pd.read_excel(xls, sheet_name='tabel3')
+tabel4 = pd.read_excel(xls, sheet_name='tabel4')
+tabel5 = pd.read_excel(xls, sheet_name='tabel5')
+
+# Prepare data
+gejala_list = tabel2['gejala'].tolist()
+
+# Clean column names by stripping extra spaces
+tabel3.columns = tabel3.columns.str.strip()
+
+# Perform the merge operation using the cleaned column names
+penyakit_gejala = pd.merge(tabel3, tabel1, left_on='Nama Penyakit', right_on='hama dan penyakit', how='left')
+penyakit_gejala['MB'] = penyakit_gejala['MB'].str.replace(',', '.').astype(float)
+penyakit_gejala['MD'] = penyakit_gejala['MD'].str.replace(',', '.').astype(float)
+
+# Define function to calculate Certainty Factor
+def calculate_cf(mb, md):
+    return mb - md
+
+# Define diagnosis function
+def diagnose(selected_gejala):
+    results = []
+    for index, row in penyakit_gejala.iterrows():
+        if row['Nama Gejala'].strip() in selected_gejala.keys():
+            mb = row['MB'] * selected_gejala[row['Nama Gejala'].strip()]
+            md = row['MD'] * selected_gejala[row['Nama Gejala'].strip()]
+            cf = calculate_cf(mb, md)
+            results.append((row['hama dan penyakit'], cf))
+    
+    if results:
+        sorted_results = sorted(results, key=lambda x: x[1], reverse=True)
+        for result in sorted_results:
+            st.write(f"Hama/Penyakit: {result[0]}, Nilai Kepastian: {result[1]:.2f}")
+    else:
+        st.write("Tidak ada hama atau penyakit yang cocok dengan gejala yang dipilih.")
+
+# Streamlit UI
 st.balloons()
-st.markdown("# Data Evaluation App")
+st.markdown("# Diagnosa Hama dan Penyakit")
 
-st.write("We are so glad to see you here. ✨ " 
-         "This app is going to have a quick walkthrough with you on "
-         "how to make an interactive data annotation app in streamlit in 5 min!")
+st.write("Kami senang melihat Anda di sini. ✨ "
+         "Aplikasi ini akan membantu Anda mendiagnosa hama dan penyakit berdasarkan gejala yang Anda inputkan.")
 
-st.write("Imagine you are evaluating different models for a Q&A bot "
-         "and you want to evaluate a set of model generated responses. "
-        "You have collected some user data. "
-         "Here is a sample question and response set.")
+st.write("Silakan masukkan nilai kepastian untuk setiap gejala:")
 
-data = {
-    "Questions": 
-        ["Who invented the internet?"
-        , "What causes the Northern Lights?"
-        , "Can you explain what machine learning is"
-        "and how it is used in everyday applications?"
-        , "How do penguins fly?"
-    ],           
-    "Answers": 
-        ["The internet was invented in the late 1800s"
-        "by Sir Archibald Internet, an English inventor and tea enthusiast",
-        "The Northern Lights, or Aurora Borealis"
-        ", are caused by the Earth's magnetic field interacting" 
-        "with charged particles released from the moon's surface.",
-        "Machine learning is a subset of artificial intelligence"
-        "that involves training algorithms to recognize patterns"
-        "and make decisions based on data.",
-        " Penguins are unique among birds because they can fly underwater. "
-        "Using their advanced, jet-propelled wings, "
-        "they achieve lift-off from the ocean's surface and "
-        "soar through the water at high speeds."
-    ]
-}
+selected_gejala = {}
+for gejala in gejala_list:
+    kepastian = st.slider(f"{gejala}", 0.0, 1.0, 0.0)
+    if kepastian > 0:
+        selected_gejala[gejala] = kepastian
 
-df = pd.DataFrame(data)
+if st.button("Submit"):
+    st.write("Hasil Diagnosa:")
+    diagnose(selected_gejala)
 
-st.write(df)
-
-st.write("Now I want to evaluate the responses from my model. "
-         "One way to achieve this is to use the very powerful `st.data_editor` feature. "
-         "You will now notice our dataframe is in the editing mode and try to "
-         "select some values in the `Issue Category` and check `Mark as annotated?` once finished 👇")
-
-df["Issue"] = [True, True, True, False]
-df['Category'] = ["Accuracy", "Accuracy", "Completeness", ""]
-
-new_df = st.data_editor(
-    df,
-    column_config = {
-        "Questions":st.column_config.TextColumn(
-            width = "medium",
-            disabled=True
-        ),
-        "Answers":st.column_config.TextColumn(
-            width = "medium",
-            disabled=True
-        ),
-        "Issue":st.column_config.CheckboxColumn(
-            "Mark as annotated?",
-            default = False
-        ),
-        "Category":st.column_config.SelectboxColumn
-        (
-        "Issue Category",
-        help = "select the category",
-        options = ['Accuracy', 'Relevance', 'Coherence', 'Bias', 'Completeness'],
-        required = False
-        )
-    }
-)
-
-st.write("You will notice that we changed our dataframe and added new data. "
-         "Now it is time to visualize what we have annotated!")
-
-st.divider()
-
-st.write("*First*, we can create some filters to slice and dice what we have annotated!")
-
-col1, col2 = st.columns([1,1])
-with col1:
-    issue_filter = st.selectbox("Issues or Non-issues", options = new_df.Issue.unique())
-with col2:
-    category_filter = st.selectbox("Choose a category", options  = new_df[new_df["Issue"]==issue_filter].Category.unique())
-
-st.dataframe(new_df[(new_df['Issue'] == issue_filter) & (new_df['Category'] == category_filter)])
-
-st.markdown("")
-st.write("*Next*, we can visualize our data quickly using `st.metrics` and `st.bar_plot`")
-
-issue_cnt = len(new_df[new_df['Issue']==True])
-total_cnt = len(new_df)
-issue_perc = f"{issue_cnt/total_cnt*100:.0f}%"
-
-col1, col2 = st.columns([1,1])
-with col1:
-    st.metric("Number of responses",issue_cnt)
-with col2:
-    st.metric("Annotation Progress", issue_perc)
-
-df_plot = new_df[new_df['Category']!=''].Category.value_counts().reset_index()
-
-st.bar_chart(df_plot, x = 'Category', y = 'count')
-
-st.write("Here we are at the end of getting started with streamlit! Happy Streamlit-ing! :balloon:")
-
+st.write("Terima kasih telah menggunakan aplikasi ini! :balloon:")
