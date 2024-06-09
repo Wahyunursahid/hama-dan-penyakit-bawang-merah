@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 
 # Load the Excel file
-file_path = 'UAS-PAKAR.xlsx'
+file_path = '/mnt/data/UAS-PAKAR.xlsx'
 xls = pd.ExcelFile(file_path)
 
 # Load sheets
@@ -34,15 +34,18 @@ def calculate_cf(mb, md):
 def diagnose(selected_gejala):
     # Initialize results dictionary with all possible diseases set to 0
     results = {penyakit: 0 for penyakit in tabel1['hama dan penyakit'].tolist()}
+    st.write("Initial results dictionary: ", results)
     
     for index, row in penyakit_gejala.iterrows():
         if row['Nama Gejala'].strip() in selected_gejala.keys():
             mb = row['MB'] * selected_gejala[row['Nama Gejala'].strip()]
             md = row['MD'] * selected_gejala[row['Nama Gejala'].strip()]
             cf = calculate_cf(mb, md)
+            st.write(f"Processing {row['Nama Penyakit']} with CF: {cf}")
             if row['Nama Penyakit'] in results:
                 results[row['Nama Penyakit']] += cf
             else:
+                st.write(f"Unknown disease found: {row['Nama Penyakit']}")
                 results['Unknown'] += cf  # Handle unknown diseases
     
     # Normalize and display results
