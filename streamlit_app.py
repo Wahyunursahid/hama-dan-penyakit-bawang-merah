@@ -36,10 +36,10 @@ def diagnose(selected_gejala):
             mb = row['MB'] * selected_gejala[row['Nama Gejala'].strip()]
             md = row['MD'] * selected_gejala[row['Nama Gejala'].strip()]
             cf = calculate_cf(mb, md)
-            if row['hama dan penyakit'] in results:
-                results[row['hama dan penyakit']] += cf
+            if row['Nama Penyakit'] in results:
+                results[row['Nama Penyakit']] += cf
             else:
-                results[row['hama dan penyakit']] = cf
+                results[row['Nama Penyakit']] = cf
             total_cf += cf
     
     if results:
