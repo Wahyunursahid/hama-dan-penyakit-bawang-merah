@@ -51,11 +51,20 @@ st.markdown("# Diagnosa Hama dan Penyakit")
 st.write("Kami senang melihat Anda di sini. ✨ "
          "Aplikasi ini akan membantu Anda mendiagnosa hama dan penyakit berdasarkan gejala yang Anda inputkan.")
 
-st.write("Silakan masukkan nilai kepastian untuk setiap gejala:")
+st.write("Silakan pilih nilai kepastian untuk setiap gejala:")
 
 selected_gejala = {}
+certainty_levels = {
+    "Tidak Yakin": 0.0,
+    "Sedikit Yakin": 0.2,
+    "Cukup Yakin": 0.5,
+    "Yakin": 0.8,
+    "Sangat Yakin": 1.0
+}
+
 for gejala in gejala_list:
-    kepastian = st.slider(f"{gejala}", 0.0, 1.0, 0.0)
+    choice = st.radio(f"{gejala}", list(certainty_levels.keys()))
+    kepastian = certainty_levels[choice]
     if kepastian > 0:
         selected_gejala[gejala] = kepastian
 
