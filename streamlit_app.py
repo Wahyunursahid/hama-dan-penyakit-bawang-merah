@@ -29,21 +29,19 @@ def calculate_cf(mb, md):
 
 # Define diagnosis function
 def diagnose(selected_gejala):
-    results = {}
+    results = {penyakit: 0 for penyakit in tabel1['hama dan penyakit'].tolist()}
     total_cf = 0
     for index, row in penyakit_gejala.iterrows():
         if row['Nama Gejala'].strip() in selected_gejala.keys():
             mb = row['MB'] * selected_gejala[row['Nama Gejala'].strip()]
             md = row['MD'] * selected_gejala[row['Nama Gejala'].strip()]
             cf = calculate_cf(mb, md)
-            if row['Nama Penyakit'] in results:
-                results[row['Nama Penyakit']] += cf
-            else:
-                results[row['Nama Penyakit']] = cf
+            results[row['Nama Penyakit']] += cf
             total_cf += cf
     
     if results:
         sorted_results = sorted(results.items(), key=lambda x: x[1], reverse=True)
+        total_cf = sum(results.values()) if sum(results.values()) != 0 else 1  # To prevent division by zero
         for result in sorted_results:
             percentage = (result[1] / total_cf) * 100
             st.write(f"Hama/Penyakit: {result[0]}, Persentase Kepastian: {percentage:.2f}%")
