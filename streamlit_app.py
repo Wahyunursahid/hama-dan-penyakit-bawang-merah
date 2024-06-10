@@ -7,6 +7,9 @@ df_penyakit = pd.read_excel(file_path, sheet_name='penyakit')
 df_gejala = pd.read_excel(file_path, sheet_name='gejala')
 df_hubungan = pd.read_excel(file_path, sheet_name='hubungan')
 
+# Tampilkan nama kolom untuk memastikan nama kolom yang benar
+st.write("Kolom pada dataframe gejala:", df_gejala.columns.tolist())
+
 # Buat dictionary untuk menyimpan data CF
 cf_data = {}
 
@@ -14,6 +17,7 @@ cf_data = {}
 penyakit_dict = dict(zip(df_penyakit['id_penyakit'], df_penyakit['hama dan penyakit']))
 
 # Proses data gejala
+# Periksa nama kolom yang benar dan sesuaikan jika perlu
 gejala_dict = dict(zip(df_gejala['id gejala'], df_gejala['gejala']))
 
 # Proses data hubungan hama penyakit dengan gejala
