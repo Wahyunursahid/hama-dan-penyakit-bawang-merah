@@ -34,6 +34,9 @@ def calculate_cf(mb, md):
 def diagnose(selected_gejala):
     results = {penyakit: 0 for penyakit in tabel1['hama dan penyakit'].tolist()}
     
+    # Ensure 'Unknown' key exists in the results dictionary
+    results['Unknown'] = 0
+
     for index, row in penyakit_gejala.iterrows():
         if row['Nama Gejala'].strip() in selected_gejala.keys():
             mb = row['MB'] * selected_gejala[row['Nama Gejala'].strip()]
