@@ -1,82 +1,74 @@
 import streamlit as st
 import pandas as pd
 
-# Load the Excel file
+# Baca data dari file Excel
 file_path = 'UAS-PAKAR.xlsx'
-xls = pd.ExcelFile(file_path)
+df_penyakit = pd.read_excel(file_path, sheet_name='penyakit')
+df_gejala = pd.read_excel(file_path, sheet_name='gejala')
+df_hubungan = pd.read_excel(file_path, sheet_name='hubungan')
 
-# Load sheets
-tabel1 = pd.read_excel(xls, sheet_name='tabel1')
-tabel2 = pd.read_excel(xls, sheet_name='tabel2')
-tabel3 = pd.read_excel(xls, sheet_name='tabel3')
-tabel4 = pd.read_excel(xls, sheet_name='tabel4')
-tabel5 = pd.read_excel(xls, sheet_name='tabel5')
+# Buat dictionary untuk menyimpan data CF
+cf_data = {}
 
-# Prepare data
-gejala_list = tabel2['gejala'].tolist()
+# Proses data penyakit
+penyakit_dict = dict(zip(df_penyakit['id_penyakit'], df_penyakit['hama dan penyakit']))
 
-# Clean column names by stripping extra spaces
-tabel3.columns = tabel3.columns.str.strip()
+# Proses data gejala
+gejala_dict = dict(zip(df_gejala['id gejala'], df_gejala['gejala']))
 
-# Perform the merge operation using the cleaned column names
-penyakit_gejala = pd.merge(tabel3, tabel1, left_on='Nama Penyakit', right_on='hama dan penyakit', how='left')
-penyakit_gejala['MB'] = penyakit_gejala['MB'].str.replace(',', '.').astype(float)
-penyakit_gejala['MD'] = penyakit_gejala['MD'].str.replace(',', '.').astype(float)
-
-# Ensure there are no NaN values in 'Nama Penyakit'
-penyakit_gejala['Nama Penyakit'] = penyakit_gejala['Nama Penyakit'].fillna('Unknown')
-
-# Define function to calculate Certainty Factor
-def calculate_cf(mb, md):
-    return mb - md
-
-# Define diagnosis function
-def diagnose(selected_gejala):
-    results = {penyakit: 0 for penyakit in tabel1['hama dan penyakit'].tolist()}
+# Proses data hubungan hama penyakit dengan gejala
+for index, row in df_hubungan.iterrows():
+    penyakit_id = row['jenis hama dan penyakit']
+    gejala_ids = row['gejala'].split(',')
     
-    # Ensure 'Unknown' key exists in the results dictionary
-    results['Unknown'] = 0
-
-    for index, row in penyakit_gejala.iterrows():
-        if row['Nama Gejala'].strip() in selected_gejala.keys():
-            mb = row['MB'] * selected_gejala[row['Nama Gejala'].strip()]
-            md = row['MD'] * selected_gejala[row['Nama Gejala'].strip()]
-            cf = calculate_cf(mb, md)
-            if row['Nama Penyakit'] in results:
-                results[row['Nama Penyakit']] += cf
-            else:
-                results['Unknown'] += cf
-
-    total_cf = sum(results.values()) if sum(results.values()) != 0 else 1  # To prevent division by zero
-    sorted_results = sorted(results.items(), key=lambda x: x[1], reverse=True)
+    if penyakit_id not in cf_data:
+        cf_data[penyakit_id] = {}
     
-    for result in sorted_results:
-        percentage = (result[1] / total_cf) * 100
-        st.write(f"Hama/Penyakit: {result[0]}, Persentase Kepastian: {percentage:.2f}%")
+    for gejala_id in gejala_ids:
+        cf_data[penyakit_id][gejala_id] = 0  # Nilai CF default 0, nanti akan dihitung berdasarkan input pengguna
+
+# Fungsi untuk menghitung Certainty Factor
+def calculate_cf(symptoms):
+    results = {}
+    for disease, symptoms_cf in cf_data.items():
+        combined_cf = 0
+        for symptom, user_cf in symptoms.items():
+            if symptom in symptoms_cf:
+                combined_cf = combined_cf + user_cf * (1 - combined_cf)
+        results[disease] = combined_cf
+    return results
+
+# Fungsi untuk konversi nilai CF dari deskripsi
+def convert_cf(description):
+    cf_values = {
+        'Pasti': 1.0,
+        'Hampir Pasti': 0.9,
+        'Kemungkinan Besar': 0.8,
+        'Mungkin': 0.7,
+        'Tidak Tahu': 0.6,
+        'Kemungkinan Tidak': 0.5,
+        'Kemungkinan Besar Tidak': 0.4,
+        'Hampir Pasti Tidak': 0.3,
+        'Pasti Tidak': 0.2
+    }
+    return cf_values.get(description, 0.0)
 
 # Streamlit UI
-st.title("Sistem Diagnosa Hama dan Penyakit")
+st.title('Diagnosa Hama dan Penyakit Tanaman Bawang Merah')
+st.write('Pilih gejala yang terdeteksi pada tanaman bawang merah:')
 
-st.write("Masukan Skala Keyakinan Pada Gejala Anda:")
-certainty_levels = {
-    "Pasti Tidak": 0.2,
-    "Hampir Pasti Tidak": 0.3,
-    "Kemungkinan Besar Tidak": 0.4,
-    "Kemungkinan Tidak": 0.5,
-    "Tidak Tahu": 0.6,
-    "Mungkin": 0.7,
-    "Kemungkinan Besar": 0.8,
-    "Hampir Yakin": 0.9,
-    "Sangat Yakin": 1.0
-}
+input_symptoms = {}
 
-selected_gejala = {}
-for gejala in gejala_list:
-    choice = st.selectbox(f"{gejala}:", options=list(certainty_levels.keys()), index=4)  # Default to "Tidak Tahu"
-    selected_gejala[gejala] = certainty_levels[choice]
+for gejala_id, gejala_desc in gejala_dict.items():
+    selected_cf = st.radio(f"{gejala_desc} ({gejala_id})", 
+                           ['Tidak Tahu', 'Pasti Tidak', 'Hampir Pasti Tidak', 'Kemungkinan Besar Tidak', 'Kemungkinan Tidak', 'Mungkin', 'Kemungkinan Besar', 'Hampir Pasti', 'Pasti'])
+    input_symptoms[gejala_id] = convert_cf(selected_cf)
 
-if st.button("Diagnosa Sekarang"):
+# Hitung CF berdasarkan gejala input
+if st.button('Diagnosa'):
+    diagnosis = calculate_cf(input_symptoms)
+    
     st.write("Hasil Diagnosa:")
-    diagnose(selected_gejala)
-
-st.write("Terima kasih telah menggunakan aplikasi ini!")
+    for disease_id, cf in diagnosis.items():
+        disease_name = penyakit_dict[disease_id]
+        st.write(f"Penyakit/Hama: {disease_name}, Certainty Factor: {cf:.2f}")
