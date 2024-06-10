@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 
 # Load the Excel file
-file_path = '/mnt/data/UAS-PAKAR.xlsx'
+file_path = 'UAS-PAKAR.xlsx'
 xls = pd.ExcelFile(file_path)
 
 # Load sheets
